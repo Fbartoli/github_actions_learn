@@ -15,10 +15,39 @@ on:
 jobs:
   hello-world:
     runs-on: ubuntu-latest
+    outputs:
+      message: ${{ steps.hello-step.outputs.message }}
+      timestamp: ${{ steps.hello-step.outputs.timestamp }}
+      status: ${{ steps.hello-step.outputs.status }}
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Say Hello World
-      run: echo "Hello World"
+    - name: Say Hello World and Generate Data
+      id: hello-step
+      run: |
+        echo "Hello World"
+        echo "Current time: $(date)"
+        echo "Processing some data..."
+        
+        # Generate some example data
+        MESSAGE="Hello World from GitHub Actions!"
+        TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        STATUS="success"
+        
+        # Set outputs
+        echo "message=$MESSAGE" >> $GITHUB_OUTPUT
+        echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+        echo "status=$STATUS" >> $GITHUB_OUTPUT
+        
+        # Also create a JSON response
+        echo '{"message":"'"$MESSAGE"'","timestamp":"'"$TIMESTAMP"'","status":"'"$STATUS"'","workflow_run_id":"'"$GITHUB_RUN_ID"'"}' > response.json
+        cat response.json
+        
+    - name: Upload Response as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: workflow-response
+        path: response.json
+        retention-days: 30

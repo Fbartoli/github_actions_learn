@@ -1,0 +1,286 @@
+{
+  "name": "GitHub Actions Trigger and Monitor",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start-node",
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/YOUR_USERNAME/YOUR_REPO_NAME/actions/workflows/hello-world.yml/dispatches",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            },
+            {
+              "name": "Authorization", 
+              "value": "token YOUR_GITHUB_TOKEN"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "ref",
+              "value": "main"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "trigger-workflow",
+      "name": "Trigger GitHub Workflow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "amount": 15,
+        "unit": "seconds"
+      },
+      "id": "initial-wait",
+      "name": "Initial Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/YOUR_USERNAME/YOUR_REPO_NAME/actions/runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            },
+            {
+              "name": "Authorization",
+              "value": "token YOUR_GITHUB_TOKEN"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "check-status",
+      "name": "Check Workflow Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "completed-condition",
+              "leftValue": "={{ $json.workflow_runs[0].status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "status-switch",
+      "name": "Check If Completed",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/YOUR_USERNAME/YOUR_REPO_NAME/actions/runs/{{ $node[\"Check Workflow Status\"].json[\"workflow_runs\"][0][\"id\"] }}/jobs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            },
+            {
+              "name": "Authorization",
+              "value": "token YOUR_GITHUB_TOKEN"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-jobs",
+      "name": "Get Job Outputs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/YOUR_USERNAME/YOUR_REPO_NAME/actions/runs/{{ $node[\"Check Workflow Status\"].json[\"workflow_runs\"][0][\"id\"] }}/artifacts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept", 
+              "value": "application/vnd.github.v3+json"
+            },
+            {
+              "name": "Authorization",
+              "value": "token YOUR_GITHUB_TOKEN"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-artifacts",
+      "name": "Get Artifacts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1340, 400]
+    },
+    {
+      "parameters": {
+        "amount": 10,
+        "unit": "seconds"
+      },
+      "id": "polling-wait",
+      "name": "Wait Before Retry",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [900, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract and format the workflow results\nconst jobs = $input.first().json.jobs;\nconst artifacts = $input.last().json.artifacts;\n\n// Get the main job (hello-world)\nconst mainJob = jobs.find(job => job.name === 'hello-world');\n\n// Get the response artifact\nconst responseArtifact = artifacts.find(artifact => artifact.name === 'workflow-response');\n\n// Format the response\nconst result = {\n  workflow_run_id: $node[\"Check Workflow Status\"].json[\"workflow_runs\"][0][\"id\"],\n  status: mainJob?.conclusion || 'unknown',\n  completed_at: mainJob?.completed_at,\n  duration_seconds: mainJob ? Math.round((new Date(mainJob.completed_at) - new Date(mainJob.started_at)) / 1000) : null,\n  outputs: mainJob?.outputs || {},\n  artifact_download_url: responseArtifact?.archive_download_url || null,\n  logs_url: $node[\"Check Workflow Status\"].json[\"workflow_runs\"][0][\"html_url\"]\n};\n\nreturn { json: result };"
+      },
+      "id": "format-results",
+      "name": "Format Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Trigger GitHub Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger GitHub Workflow": {
+      "main": [
+        [
+          {
+            "node": "Initial Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initial Wait": {
+      "main": [
+        [
+          {
+            "node": "Check Workflow Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Workflow Status": {
+      "main": [
+        [
+          {
+            "node": "Check If Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Completed": {
+      "main": [
+        [
+          {
+            "node": "Get Job Outputs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Artifacts", 
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait Before Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Job Outputs": {
+      "main": [
+        [
+          {
+            "node": "Format Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Artifacts": {
+      "main": [
+        [
+          {
+            "node": "Format Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Before Retry": {
+      "main": [
+        [
+          {
+            "node": "Check Workflow Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}
