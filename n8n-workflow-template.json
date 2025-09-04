@@ -1,5 +1,9 @@
 {
   "name": "GitHub Actions Trigger and Monitor",
+  "settings": {
+    "github_username": "YOUR_USERNAME",
+    "github_repo": "YOUR_REPO_NAME"
+  },
   "nodes": [
     {
       "parameters": {},
@@ -11,17 +15,15 @@
     },
     {
       "parameters": {
-        "url": "https://api.github.com/repos/YOUR_USERNAME/YOUR_REPO_NAME/actions/workflows/hello-world.yml/dispatches",
+        "url": "https://api.github.com/repos/{{$workflow.settings.github_username}}/{{$workflow.settings.github_repo}}/actions/workflows/hello-world.yml/dispatches",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBearerAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Accept",
               "value": "application/vnd.github.v3+json"
-            },
-            {
-              "name": "Authorization", 
-              "value": "token YOUR_GITHUB_TOKEN"
             },
             {
               "name": "Content-Type",
@@ -44,7 +46,13 @@
       "name": "Trigger GitHub Workflow",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [460, 300]
+      "position": [460, 300],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "github-bearer-token",
+          "name": "GitHub Bearer Token"
+        }
+      }
     },
     {
       "parameters": {
@@ -59,17 +67,15 @@
     },
     {
       "parameters": {
-        "url": "https://api.github.com/repos/YOUR_USERNAME/YOUR_REPO_NAME/actions/runs",
+        "url": "https://api.github.com/repos/{{$workflow.settings.github_username}}/{{$workflow.settings.github_repo}}/actions/runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBearerAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Accept",
               "value": "application/vnd.github.v3+json"
-            },
-            {
-              "name": "Authorization",
-              "value": "token YOUR_GITHUB_TOKEN"
             }
           ]
         },
@@ -79,7 +85,13 @@
       "name": "Check Workflow Status",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [900, 300]
+      "position": [900, 300],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "github-bearer-token",
+          "name": "GitHub Bearer Token"
+        }
+      }
     },
     {
       "parameters": {
@@ -112,17 +124,15 @@
     },
     {
       "parameters": {
-        "url": "=https://api.github.com/repos/YOUR_USERNAME/YOUR_REPO_NAME/actions/runs/{{ $node[\"Check Workflow Status\"].json[\"workflow_runs\"][0][\"id\"] }}/jobs",
+        "url": "=https://api.github.com/repos/{{$workflow.settings.github_username}}/{{$workflow.settings.github_repo}}/actions/runs/{{ $node[\"Check Workflow Status\"].json[\"workflow_runs\"][0][\"id\"] }}/jobs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBearerAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Accept",
               "value": "application/vnd.github.v3+json"
-            },
-            {
-              "name": "Authorization",
-              "value": "token YOUR_GITHUB_TOKEN"
             }
           ]
         },
@@ -132,21 +142,25 @@
       "name": "Get Job Outputs",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1340, 200]
+      "position": [1340, 200],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "github-bearer-token",
+          "name": "GitHub Bearer Token"
+        }
+      }
     },
     {
       "parameters": {
-        "url": "=https://api.github.com/repos/YOUR_USERNAME/YOUR_REPO_NAME/actions/runs/{{ $node[\"Check Workflow Status\"].json[\"workflow_runs\"][0][\"id\"] }}/artifacts",
+        "url": "=https://api.github.com/repos/{{$workflow.settings.github_username}}/{{$workflow.settings.github_repo}}/actions/runs/{{ $node[\"Check Workflow Status\"].json[\"workflow_runs\"][0][\"id\"] }}/artifacts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBearerAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Accept", 
               "value": "application/vnd.github.v3+json"
-            },
-            {
-              "name": "Authorization",
-              "value": "token YOUR_GITHUB_TOKEN"
             }
           ]
         },
@@ -156,7 +170,13 @@
       "name": "Get Artifacts",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1340, 400]
+      "position": [1340, 400],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "github-bearer-token",
+          "name": "GitHub Bearer Token"
+        }
+      }
     },
     {
       "parameters": {

@@ -1,0 +1,339 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "7026ee53-1070-4dac-8967-838b9e08467c",
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        -2064,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.github.com/repos/Fbartoli/github_actions_learn/actions/workflows/hello-world.yml/dispatches",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "ref",
+              "value": "main"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3627523f-304c-4cd1-a742-8c1cab672daf",
+      "name": "Trigger GitHub Workflow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -1840,
+        576
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "ntKNwb11rPuIZSfu",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 15,
+        "unit": "seconds"
+      },
+      "id": "3f9775b4-8872-4bc9-a1e6-5335f8137d40",
+      "name": "Initial Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        -1616,
+        576
+      ],
+      "webhookId": "b6a7db12-1d1d-419e-8d2e-cf10baf9f2b6"
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/Fbartoli/github_actions_learn/actions/runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "504170f3-253c-4467-b6c6-074d3849d1c0",
+      "name": "Check Workflow Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -1408,
+        576
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "ntKNwb11rPuIZSfu",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.workflow_runs[0].status }}",
+                    "rightValue": "completed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "82ec88b6-7267-4efb-8137-56b707e1390e"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "8368a007-40a8-4a2e-aa36-e799eb47bbbb",
+                    "leftValue": "={{ $json.workflow_runs[0].conclusion }}",
+                    "rightValue": "success",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "15539518-1e30-4a68-bc9a-2bc642f67028",
+      "name": "Check If Completed",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        -1184,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/Fbartoli/github_actions_learn/actions/runs/{{ $node[\"Check Workflow Status\"].json[\"workflow_runs\"][0][\"id\"] }}/artifacts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5cc0ec5c-97b1-4d2d-b096-575e271d6a83",
+      "name": "Get Artifacts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -960,
+        560
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "ntKNwb11rPuIZSfu",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 10,
+        "unit": "seconds"
+      },
+      "id": "b70f1238-6a9f-4e28-9e5a-d37c607aff5b",
+      "name": "Wait Before Retry",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        -1008,
+        704
+      ],
+      "webhookId": "98ee56c6-90d7-4923-8f2e-0f47ad30b897"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "U07AJN5HTUL",
+          "mode": "list",
+          "cachedResultName": "florent.b"
+        },
+        "text": "=```\n{{ JSON.stringify($json.artifacts[0]) }}\n```",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        -816,
+        560
+      ],
+      "id": "b8957bba-d315-47c7-bbe6-34f993e3ee78",
+      "name": "Send a message",
+      "webhookId": "9f9e5211-ff55-4d11-9573-863202a20031",
+      "executeOnce": true,
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "B8vEj7aw7FuZxxKR",
+          "name": "Slack account 5"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Trigger GitHub Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger GitHub Workflow": {
+      "main": [
+        [
+          {
+            "node": "Initial Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initial Wait": {
+      "main": [
+        [
+          {
+            "node": "Check Workflow Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Workflow Status": {
+      "main": [
+        [
+          {
+            "node": "Check If Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Completed": {
+      "main": [
+        [
+          {
+            "node": "Get Artifacts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait Before Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Artifacts": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Before Retry": {
+      "main": [
+        [
+          {
+            "node": "Check Workflow Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9d2c8e3c-773f-49cc-886a-ba4cef3ff9cf",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8b3ca6262ad5abae0d31f3ea6568b11a7bb9278c7dda9a66dddba6284eac492c"
+  },
+  "id": "48nY3u6OGvJx06e9",
+  "tags": []
+}
